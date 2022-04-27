@@ -1,0 +1,22 @@
+name: GitHub Actions Demo
+on: [push]
+jobs:
+  Explore-GitHub-Actions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout commit
+        uses: actions/checkout@v3
+
+      - name: Change file
+        run: |
+          sed -i -e "s#dev#prod#" ./src/const.py
+
+      - name: Build zip package
+        run: |
+          zip -r output.zip ./ -x "*.git*"
+
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: output
+          path: ./output.zip
