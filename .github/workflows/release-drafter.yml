@@ -2,8 +2,7 @@ name: Release Drafter
 
 on:
   push:
-    branches:
-      - master
+    branches: [master, hotfix]
 
 jobs:
   build:
@@ -30,16 +29,19 @@ jobs:
   update_release_draft:
     runs-on: ubuntu-latest
     steps:
+      - name: Download a single artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: output
+
+      - name: Display structure of downloaded files
+        run: ls -R
+
       - name: Draft release
         uses: release-drafter/release-drafter@v5
         id: create-draft
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Download a single artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: output
 
       - name: Upload release Asset
         uses: actions/upload-release-asset@v1
