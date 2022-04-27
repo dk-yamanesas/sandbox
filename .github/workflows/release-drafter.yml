@@ -36,9 +36,6 @@ jobs:
         with:
           name: output
 
-      - name: Display structure of downloaded files
-        run: ls -R
-
       - name: Draft release
         uses: release-drafter/release-drafter@v5
         id: create-draft
