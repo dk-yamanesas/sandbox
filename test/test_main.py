@@ -1,5 +1,5 @@
 import pytest
-from src.main import add, sub
+from src.main import add, mul, sub
 
 
 @pytest.mark.parametrize("params", [(1, 1)])
@@ -18,3 +18,11 @@ def test_sub(params):
     ans = sub(x, y)
 
     assert ans == x - y
+
+@pytest.mark.parametrize("params", [(1, 1)])
+def test_mul(params):
+    x = params[0]
+    y = params[1]
+    ans = mul(x, y)
+
+    assert ans == x * y
