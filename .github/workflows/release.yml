@@ -1,0 +1,53 @@
+name: Release Drafter
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout commit
+        uses: actions/checkout@v3
+
+      - name: Change file
+        run: |
+          sed -i -e "s#dev#prod#" ./src/const.py
+
+      - name: Build zip package
+        run: |
+          zip -r output.zip ./ -x "*.git*"
+
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: output
+          path: ./output.zip
+
+
+  update_release_draft:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download a single artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: output
+
+      - name: Draft release
+        uses: release-drafter/release-drafter@v5
+        id: create-draft
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-draft.outputs.upload_url }}
+          asset_path: ./output.zip
+          asset_name: output.zip
+          asset_content_type: application/zip
