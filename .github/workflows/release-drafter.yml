@@ -6,9 +6,9 @@ on:
     branches:
       - master
   # pull_request event is required only for autolabeler
-  pull_request:
+  # pull_request:
     # Only following types are handled by the action, but one can default to all as well
-    types: [opened, reopened, synchronize]
+    # types: [opened, reopened, synchronize]
   # pull_request_target event is required for autolabeler to support PRs from forks
   # pull_request_target:
   #   types: [opened, reopened, synchronize]
@@ -17,6 +17,23 @@ jobs:
   update_release_draft:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout commit
+        uses: actions/checkout@v3
+
+      - name: Change file
+        run: |
+          sed -i -e "s#dev#prod#" ./src/const.py
+
+      - name: Build zip package
+        run: |
+          zip -r output.zip ./ -x "*.git*"
+
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: output
+          path: ./output.zip
+
       # (Optional) GitHub Enterprise requires GHE_HOST variable set
       #- name: Set GHE_HOST
       #  run: |
@@ -24,9 +41,21 @@ jobs:
 
       # Drafts your next Release notes as Pull Requests are merged into "master"
       - uses: release-drafter/release-drafter@v5
+        id: create-draft
         # (Optional) specify config name to use, relative to .github/. Default: release-drafter.yml
         # with:
         #   config-name: my-config.yml
         #   disable-autolabeler: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Asset #ここで成果物をリリースノートにアップロード
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-draft.outputs.upload_url }}
+          asset_path: ./output.zip
+          asset_name: output.zip
+          asset_content_type: application/zip
