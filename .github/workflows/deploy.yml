@@ -13,11 +13,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: deploy
+      - name: set ENV
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           USER_NAME: ${{ secrets.USER_NAME }}
           HOST_NAME: ${{ secrets.HOST_NAME }}
+          AWS_WEB_IDENTITY_TOKEN_FILE: ${{ secrets.AWS_WEB_IDENTITY_TOKEN_FILE }}
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
-          echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
-          ssh -o StrictHostKeyChecking=no -i private_key ${USER_NAME}@${HOST_NAME} 'cd ~/sandbox && git pull origin develop'
+          echo PRIVATE_KEY=$PRIVATE_KEY >> $GITHUB_ENV
+          echo USER_NAME=$USER_NAME >> $GITHUB_ENV
+          echo HOST_NAME=$HOST_NAME >> $GITHUB_ENV
+          echo AWS_WEB_IDENTITY_TOKEN_FILE=$AWS_WEB_IDENTITY_TOKEN_FILE >> $GITHUB_ENV
+          echo AWS_ROLE_ARN=$AWS_ROLE_ARN >> $GITHUB_ENV
+          echo AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION >> $GITHUB_ENV
+          curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sigstore" | jq -r '.value' > $AWS_WEB_IDENTITY_TOKEN_FILE
+
+      - name: deploy
+        run: |
+          echo "${{ env.PRIVATE_KEY }}" > private_key && chmod 600 private_key
+          ssh -o StrictHostKeyChecking=no -i private_key ${{ env.USER_NAME }}@${{ env.HOST_NAME }} 'cd ~/sandbox && git pull origin develop'
