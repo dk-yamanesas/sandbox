@@ -5,12 +5,22 @@ on:
     branches:
       - develop
 
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+  USER_NAME: ${{ secrets.USER_NAME }}
+  HOST_NAME: ${{ secrets.HOST_NAME }}
+  AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+  AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+  EC2_SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
+
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
     steps:
       - name: Public IP Install
         id: ip
@@ -22,19 +32,15 @@ jobs:
       - name: AWS set Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
       - name: deploy
-        env:
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          USER_NAME: ${{ secrets.USER_NAME }}
-          HOST_NAME: ${{ secrets.HOST_NAME }}
         run: |
-          aws ec2 authorize-security-group-ingress --group-id ${{ secrets.EC2_SECURITY_GROUP_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
+          aws ec2 authorize-security-group-ingress --group-id ${EC2_SECURITY_GROUP_ID} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
 
-          echo "${PRIVATE_KEY}" > private_key
+          echo "$PRIVATE_KEY" > private_key
           chmod 600 private_key
           ssh -o StrictHostKeyChecking=no -i private_key ${USER_NAME}@${HOST_NAME} 'cd ~/sandbox && git pull origin develop'
 
-          aws ec2 revoke-security-group-ingress --group-id ${{ secrets.EC2_SECURITY_GROUP_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
+          aws ec2 revoke-security-group-ingress --group-id ${EC2_SECURITY_GROUP_ID} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
